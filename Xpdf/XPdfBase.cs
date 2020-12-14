@@ -10,16 +10,15 @@ namespace Xpdf
 {
     public abstract class XPdfBase : IXPdf
     {
-
         #region Attributes
 
-        private string _path;
+        //private string _path;
 
-        public string Path
-        {
-            get { return _path; }
-            set { _path = value; }
-        }
+        //public string Path
+        //{
+        //    get { return _path; }
+        //    set { _path = value; }
+        //}
 
         private string _username;
 
@@ -38,8 +37,7 @@ namespace Xpdf
         }
 
         #endregion
-
-
+        
         /// <summary>
         /// Call generator pdf from Url or Html
         /// </summary>
@@ -66,78 +64,80 @@ namespace Xpdf
         [System.Security.Permissions.SecurityPermission(System.Security.Permissions.SecurityAction.Assert, Unrestricted = true)]
         protected byte[] CreatePdfFile(string page, string fileName, EnumPdfType source)
         {
-            bool? isFailed;
+            bool isFailed;
             byte[] fileBytes;
             string _log = string.Empty;
 
             try
             {
-                using (IHtmlToPdfConverter wkHtml = new MultiplexingConverter())
+                IHtmlToPdfConverter wkHtml = new MultiplexingConverter();
+                isFailed = false;
+
+                wkHtml.GlobalSettings.Margin.Top = "0cm";
+                wkHtml.GlobalSettings.Margin.Bottom = "0cm";
+                wkHtml.GlobalSettings.Margin.Left = "0cm";
+                wkHtml.GlobalSettings.Margin.Right = "0cm";
+
+                wkHtml.ObjectSettings.Load.Proxy = "none";
+                wkHtml.ObjectSettings.Load.LoadErrorHandling = LoadErrorHandlingType.ignore;
+                wkHtml.ObjectSettings.Load.StopSlowScripts = false;
+                wkHtml.ObjectSettings.Load.Jsdelay = 1000;
+
+                //Credentials
+                wkHtml.ObjectSettings.Load.Username = UserName;
+                wkHtml.ObjectSettings.Load.Password = Password;
+
+                wkHtml.ObjectSettings.Web.EnablePlugins = true;
+                wkHtml.ObjectSettings.Web.EnableJavascript = true;
+
+                wkHtml.ObjectSettings.Page = page; // Some misg site requiring HTTP Basic auth.
+
+                wkHtml.Begin += (s, e) =>
                 {
-                    isFailed = false;
+                    _log += string.Format("==>> Begin: {0}\n", e.Value);
+                    Console.WriteLine("==>> Begin: {0}", e.Value);
+                };
 
-                    wkHtml.GlobalSettings.Margin.Top = "0cm";
-                    wkHtml.GlobalSettings.Margin.Bottom = "0cm";
-                    wkHtml.GlobalSettings.Margin.Left = "0cm";
-                    wkHtml.GlobalSettings.Margin.Right = "0cm";
+                wkHtml.PhaseChanged += (s, e) =>
+                {
+                    _log += string.Format("==>> New Phase: {0} ({1})\n", e.Value, e.Value2);
+                    Console.WriteLine("==>> New Phase: {0} ({1})", e.Value, e.Value2);
+                };
 
-                    wkHtml.ObjectSettings.Load.Proxy = "none";
-                    wkHtml.ObjectSettings.Load.LoadErrorHandling = LoadErrorHandlingType.ignore;
-                    wkHtml.ObjectSettings.Load.StopSlowScripts = false;
-                    wkHtml.ObjectSettings.Load.Jsdelay = 1000;
+                wkHtml.ProgressChanged += (s, e) =>
+                {
+                    _log += string.Format("==>> Progress: {0} ({1})\n", e.Value, e.Value2);
+                    Console.WriteLine("==>> Progress: {0} ({1})", e.Value, e.Value2);
+                };
 
-                    //Credentials
-                    wkHtml.ObjectSettings.Load.Username = UserName;
-                    wkHtml.ObjectSettings.Load.Password = Password;
+                wkHtml.Error += (s, e) =>
+                {
+                    _log += string.Format("==>> ERROR: {0}\n", e.Value);
+                    isFailed = true;
+                    Console.WriteLine("==>> ERROR: {0}", e.Value);
+                };
 
-                    wkHtml.ObjectSettings.Web.EnablePlugins = true;
-                    wkHtml.ObjectSettings.Web.EnableJavascript = true;
+                wkHtml.Finished += (s, e) => Console.WriteLine("==>> Finish: {0}", e.Value);
+                wkHtml.Warning += (z, y) => Console.WriteLine("-->> WARN : " + y.Value);
 
-                    wkHtml.ObjectSettings.Page = page; // Some misg site requiring HTTP Basic auth.
-
-                    wkHtml.Begin += (s, e) =>
-                    {
-                        _log += string.Format("==>> Begin: {0}\n", e.Value);
-                        Console.WriteLine("==>> Begin: {0}", e.Value);
-                    };
-                    wkHtml.PhaseChanged += (s, e) =>
-                    {
-                        _log += string.Format("==>> New Phase: {0} ({1})\n", e.Value, e.Value2);
-                        Console.WriteLine("==>> New Phase: {0} ({1})", e.Value, e.Value2);
-                    };
-                    wkHtml.ProgressChanged += (s, e) =>
-                    {
-                        _log += string.Format("==>> Progress: {0} ({1})\n", e.Value, e.Value2);
-                        Console.WriteLine("==>> Progress: {0} ({1})", e.Value, e.Value2);
-                    };
-                    wkHtml.Error += (s, e) =>
-                    {
-                        _log += string.Format("==>> ERROR: {0}\n", e.Value);
-                        isFailed = true;
-                        Console.WriteLine("==>> ERROR: {0}", e.Value);
-                    };
-                    wkHtml.Finished += (s, e) => { Console.WriteLine("==>> WARN: {0}", e.Value); };
-                    lock (wkHtml)
-                    {
-                        if (source == EnumPdfType.Html)
-                            fileBytes = wkHtml.Convert(page);
-                        else
-                            fileBytes = wkHtml.Convert();
-                    }
-
-                    using (FileStream fs = new FileStream(string.Concat(Path, fileName.ToLower().Replace(".pdf", string.Empty), ".PDF"), FileMode.OpenOrCreate, FileAccess.ReadWrite))
-                    {
-                        fs.Write(fileBytes, 0, fileBytes.Length);
-                        fs.Close();
-                    }
-
-                    return fileBytes;
+                lock (wkHtml)
+                {
+                    if (source == EnumPdfType.Html)
+                        fileBytes = wkHtml.Convert(page);
+                    else
+                        fileBytes = wkHtml.Convert();
                 }
+
+                FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                fs.Write(fileBytes, 0, fileBytes.Length);
+                fs.Close();
+
+                return fileBytes;
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-        }        
+        }
     }
 }

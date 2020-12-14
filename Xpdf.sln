@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xpdf", "Xpdf\Xpdf.csproj", "{156D49FC-562C-40CD-A981-4E01F3FF9243}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTest", "ConsoleTest\ConsoleTest.csproj", "{AEC92A02-0495-4DBF-917C-BF7CF727FADB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{156D49FC-562C-40CD-A981-4E01F3FF9243}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{156D49FC-562C-40CD-A981-4E01F3FF9243}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{156D49FC-562C-40CD-A981-4E01F3FF9243}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEC92A02-0495-4DBF-917C-BF7CF727FADB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEC92A02-0495-4DBF-917C-BF7CF727FADB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEC92A02-0495-4DBF-917C-BF7CF727FADB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEC92A02-0495-4DBF-917C-BF7CF727FADB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B0FE8A06-703B-48B0-9C2C-DA0C28C49999}
 	EndGlobalSection
 EndGlobal

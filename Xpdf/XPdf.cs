@@ -1,99 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Policy;
-using System.Text;
-using WkHtmlToXSharp;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Xpdf
 {
-    public class XPdf : XPdfBase, IDisposable
+    public static class XPdf
     {
+        public delegate void FinishEvent();
+        public static event FinishEvent Finish;
 
-        #region Attributes
+        private static Task currentThread;
+        private static CancellationToken token;
+        private static CancellationTokenSource source;
 
-        private bool disposed = false;
-
-        private INativeLibraryBundle nativeBundle { get; set; }
-
-        #endregion
-
-        #region Public Methods
-
-        public XPdf()
+        public static bool InProgress
         {
-            if (nativeBundle == null)
-            {
-                if (WkHtmlToXLibrariesManager.RunningIn64Bits)
-                {
-                    nativeBundle = new Win64NativeBundle();
-                }
-                else
-                {
-                    nativeBundle = new Win32NativeBundle();
-                }
-
-                WkHtmlToXLibrariesManager.Register(nativeBundle);
-            }
+            /*get => (currentThread != null
+                ? currentThread.Status == TaskStatus.Running
+                : false);*/
+            get;
+            private set;
         }
 
-        /// <summary>
-        /// Call generator pdf from Url or Html
-        /// </summary>
-        /// <param name="url">html type</param>
-        /// <param name="fileName">Name of file</param>
-        /// <returns>byte[] from file</returns>
-        public override byte[] UrlToPdf(Url url, string fileName)
+        public static void FromURL(string url, string filename)
         {
-            return base.CreatePdfFile(url.Value, fileName, EnumPdfType.Url);
+            if (InProgress)
+                return;
+
+            InProgress = true;
+            source = new CancellationTokenSource();
+            token = source.Token;
+            
+            currentThread = Task.Factory.StartNew(() => {
+                private_FromURL(url, filename); }, token);
         }
 
-        /// <summary>
-        /// Call generator pdf from Url or Html
-        /// </summary>
-        /// <param name="html">html type</param>
-        /// <param name="fileName">Name of file</param>
-        /// <returns>byte[] from file</returns>
-        public override byte[] HtmlToPdf(string html, string fileName)
+        public static void FromHTML(string html, string filename)
         {
-            return base.CreatePdfFile(html, fileName, EnumPdfType.Html);
+            if (InProgress)
+                return;
+
+            InProgress = true;
+            source = new CancellationTokenSource();
+            token = source.Token;
+
+            currentThread = Task.Factory.StartNew(() => {
+                private_FromHTML(html, filename); }, token);
         }
 
-        #endregion
-
-        #region Private Methods
-
-
-        #endregion
-
-        #region Implement IDisposable
-
-        public void Dispose()
+        private static void private_FromURL(string url, string filename)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            new Xpdf.XPdfer().UrlToPdf(new System.Security.Policy.Url(url), filename);
+
+            _finished();
+            if (Finish != null)
+                Finish();
         }
 
-        protected virtual void Dispose(bool disposing)
+        private static void private_FromHTML(string html, string filename)
         {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    //managed objects
-                }
-                // set fields to null
-                disposed = true;
-            }
+            new Xpdf.XPdfer().HtmlToPdf(html, filename);
+
+            _finished();
+            if (Finish != null)
+                Finish();
         }
 
-        ~XPdf()
+        private static void _finished()
         {
-            Dispose(false);
+            if (currentThread == null)
+                return;
+
+            InProgress = false;
+            source.Cancel(true);
         }
-
-        #endregion
-
     }
 }
